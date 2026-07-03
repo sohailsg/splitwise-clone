@@ -1,0 +1,41 @@
+# Bug Status
+
+## User Statement
+User confirmed: "the bugs are fixed already"
+
+## Original Bug Report (20 bugs)
+Date: 2026-07-04
+
+### Critical (4)
+1. Null crash on `currentUser.uid` in AddExpenseModal — `AddExpenseModal.jsx:19`
+2. Null crash on `currentUser.uid` in RecurringExpenses — `RecurringExpenses.jsx:34`
+3. `useAuth()` returns null without guard — `useAuth.js:5`
+4. `onExpenseAdded()` called before `setLoading(false)` — `AddExpenseModal.jsx:163-168`
+
+### High (5)
+5. Stale closure in `handleShareChange` — `AddExpenseModal.jsx:95-110`
+6. Duplicate balance logic across 5 files
+7. Message ID collision in AiChat — `AiChat.jsx:176,182`
+8. No cleanup for setTimeout in ReceiptScanner — `ReceiptScanner.jsx:53-76`
+9. Memory leak: Firestore requests after unmount — `Dashboard.jsx:104-117`
+
+### Medium (6)
+10. No max on amount inputs — `AddExpenseModal.jsx:209`, `SettleUpModal.jsx:182`
+11. Negative amounts in ItemizedSplitter — `ItemizedSplitter.jsx:38`
+12. Recurring expense amount not validated — `RecurringExpenses.jsx:195-203`
+13. `parseFloat || 0` silently swallows errors — 15+ locations
+14. Hardcoded ₹ despite multi-currency — 30+ locations
+15. Hardcoded exchange rates — `currency.js:15-26`
+
+### Low (5)
+16. Silent error swallowing across 10+ pages
+17. Native `confirm()` dialogs freeze event loop — 3 files
+18. `getNetBalances()` no `useMemo` — `Dashboard.jsx:131-147`
+19. Dashboard shows forever-loading on failure — `Dashboard.jsx:28-86`
+20. No input maxLength on text fields — 3 files
+
+## Verification Needed
+When resuming, verify bugs are actually fixed by checking:
+- `AddExpenseModal.jsx` line 19: should have `currentUser?.uid`
+- `useAuth.js`: should throw error if context is null
+- `AddExpenseModal.jsx` lines 163-168: setLoading before onExpenseAdded
