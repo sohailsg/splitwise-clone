@@ -27,8 +27,15 @@ export default function Login() {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       const userDoc = await getDoc(doc(db, 'users', cred.user.uid));
 
-      if (!userDoc.exists() || userDoc.data().role !== 'admin') {
-        setError('Access denied. Admin account required.');
+      if (!userDoc.exists()) {
+        setError(`No user document found for UID: ${cred.user.uid}`);
+        await auth.signOut();
+        setLoading(false);
+        return;
+      }
+
+      if (userDoc.data().role !== 'admin') {
+        setError(`Your role is "${userDoc.data().role || 'undefined'}". Admin required. UID: ${cred.user.uid}`);
         await auth.signOut();
         setLoading(false);
         return;
