@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   doc,
   getDoc,
@@ -21,6 +21,7 @@ import { formatCurrency } from "../utils/currency";
 
 export default function GroupDetails() {
   const { groupId } = useParams();
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
@@ -236,7 +237,7 @@ export default function GroupDetails() {
     if (!confirm("Are you sure? All group data will be lost.")) return;
     try {
       await deleteDoc(doc(db, "groups", groupId));
-      window.location.href = "/groups";
+      navigate("/groups");
     } catch (err) {
       console.error("Error deleting group:", err);
     }
