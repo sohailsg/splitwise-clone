@@ -100,17 +100,19 @@ export default function SettleUpModal({ onClose, onSettlementCreated }) {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, "settlements"), {
+      const settleData = {
         fromUserId: currentUser.uid,
         toUserId: toUser,
         groupId: selectedGroup,
         amount: parseFloat(amount),
         date: new Date().toISOString(),
-      });
+      };
+
+      await addDoc(collection(db, "settlements"), settleData);
       onSettlementCreated();
     } catch (err) {
+      console.error("Settlement creation failed:", err);
       setError("Failed to record settlement");
-      console.error(err);
     } finally {
       setLoading(false);
     }

@@ -22,6 +22,7 @@ export default function GroupDetails() {
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -31,11 +32,17 @@ export default function GroupDetails() {
     let cancelled = false;
     const loadData = async () => {
       try {
-        const [groupSnap, expensesSnap] = await Promise.all([
+        const [groupSnap, expensesSnap, settlementsSnap] = await Promise.all([
           getDoc(doc(db, "groups", groupId)),
           getDocs(
             query(
               collection(db, "expenses"),
+              where("groupId", "==", groupId)
+            )
+          ),
+          getDocs(
+            query(
+              collection(db, "settlements"),
               where("groupId", "==", groupId)
             )
           ),
@@ -75,6 +82,12 @@ export default function GroupDetails() {
         }));
         expensesList.sort((a, b) => new Date(b.date) - new Date(a.date));
         setExpenses(expensesList);
+
+        const settlementsList = settlementsSnap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }));
+        setSettlements(settlementsList);
       } catch (err) {
         console.error("Error loading data:", err);
         if (!cancelled) setError("Failed to load group");
@@ -100,20 +113,29 @@ export default function GroupDetails() {
   const handleExpenseAdded = async () => {
     setShowAddExpense(false);
     try {
-      const snapshot = await getDocs(
-        query(
-          collection(db, "expenses"),
-          where("groupId", "==", groupId)
-        )
-      );
-      const expensesList = snapshot.docs.map((d) => ({
+      const [expensesSnap, settlementsSnap] = await Promise.all([
+        getDocs(
+          query(
+            collection(db, "expenses"),
+            where("groupId", "==", groupId)
+          )
+        ),
+        getDocs(
+          query(
+            collection(db, "settlements"),
+            where("groupId", "==", groupId)
+          )
+        ),
+      ]);
+      const expensesList = expensesSnap.docs.map((d) => ({
         id: d.id,
         ...d.data(),
       }));
       expensesList.sort((a, b) => new Date(b.date) - new Date(a.date));
       setExpenses(expensesList);
+      setSettlements(settlementsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (err) {
-      console.error("Error fetching expenses:", err);
+      console.error("Error fetching data:", err);
     }
   };
 
@@ -130,7 +152,7 @@ export default function GroupDetails() {
   };
 
   const calculateGroupBalances = () => {
-    const balances = computeRawBalances(expenses, []);
+    const balances = computeRawBalances(expenses, settlements);
     return netPairwiseBalances(balances);
   };
 
