@@ -13,6 +13,7 @@ import { db } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
 import Navbar from "../components/Navbar";
 import AddExpenseModal from "../components/AddExpenseModal";
+import SettleUpModal from "../components/SettleUpModal";
 import { computeRawBalances, netPairwiseBalances } from "../utils/balances";
 import { formatCurrency } from "../utils/currency";
 
@@ -26,6 +27,7 @@ export default function GroupDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showSettleModal, setShowSettleModal] = useState(false);
   const [expandedExpense, setExpandedExpense] = useState(null);
 
   useEffect(() => {
@@ -77,16 +79,21 @@ export default function GroupDetails() {
         expensesList.sort((a, b) => new Date(b.date) - new Date(a.date));
         setExpenses(expensesList);
 
-        const settlementsSnap = await getDocs(
-          query(
-            collection(db, "settlements"),
-            where("groupId", "==", groupId)
-          )
-        ).catch(() => null);
-
-        if (cancelled) return;
-        if (settlementsSnap) {
-          setSettlements(settlementsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        try {
+          const [sentSnap, receivedSnap] = await Promise.all([
+            getDocs(query(collection(db, "settlements"), where("fromUserId", "==", currentUser.uid))),
+            getDocs(query(collection(db, "settlements"), where("toUserId", "==", currentUser.uid))),
+          ]);
+          if (cancelled) return;
+          const allSettlements = [
+            ...sentSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+            ...receivedSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+          ];
+          const unique = allSettlements.filter((s) => s.groupId === groupId);
+          const deduped = Object.values(unique.reduce((acc, s) => { acc[s.id] = s; return acc; }, {}));
+          setSettlements(deduped);
+        } catch (e) {
+          console.warn("Settlements fetch failed:", e);
         }
       } catch (err) {
         console.error("Error loading data:", err);
@@ -110,6 +117,24 @@ export default function GroupDetails() {
     }
   };
 
+  const fetchGroupSettlements = async () => {
+    try {
+      const [sentSnap, receivedSnap] = await Promise.all([
+        getDocs(query(collection(db, "settlements"), where("fromUserId", "==", currentUser.uid))),
+        getDocs(query(collection(db, "settlements"), where("toUserId", "==", currentUser.uid))),
+      ]);
+      const allSettlements = [
+        ...sentSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+        ...receivedSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+      ];
+      const filtered = allSettlements.filter((s) => s.groupId === groupId);
+      return Object.values(filtered.reduce((acc, s) => { acc[s.id] = s; return acc; }, {}));
+    } catch (e) {
+      console.warn("Settlements fetch failed:", e);
+      return [];
+    }
+  };
+
   const handleExpenseAdded = async () => {
     setShowAddExpense(false);
     try {
@@ -125,19 +150,25 @@ export default function GroupDetails() {
       }));
       expensesList.sort((a, b) => new Date(b.date) - new Date(a.date));
       setExpenses(expensesList);
-
-      const settlementsSnap = await getDocs(
-        query(
-          collection(db, "settlements"),
-          where("groupId", "==", groupId)
-        )
-      ).catch(() => null);
-      if (settlementsSnap) {
-        setSettlements(settlementsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      }
+      setSettlements(await fetchGroupSettlements());
     } catch (err) {
       console.error("Error fetching data:", err);
     }
+  };
+
+  const handleDeleteSettlement = async (settlementId) => {
+    if (!confirm("Delete this settlement?")) return;
+    try {
+      await deleteDoc(doc(db, "settlements", settlementId));
+      setSettlements((prev) => prev.filter((s) => s.id !== settlementId));
+    } catch (err) {
+      console.error("Error deleting settlement:", err);
+    }
+  };
+
+  const handleSettleCreated = async () => {
+    setShowSettleModal(false);
+    setSettlements(await fetchGroupSettlements());
   };
 
   const getMemberName = (uid) => {
@@ -216,12 +247,20 @@ export default function GroupDetails() {
               {members.length} member{members.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <button
-            onClick={() => setShowAddExpense(true)}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors"
-          >
-            + Add Expense
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowAddExpense(true)}
+              className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors"
+            >
+              + Expense
+            </button>
+            <button
+              onClick={() => setShowSettleModal(true)}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+            >
+              Settle Up
+            </button>
+          </div>
         </div>
 
         {myBalance && myBalance.length > 0 && (
@@ -343,6 +382,55 @@ export default function GroupDetails() {
           </div>
         </div>
 
+        {settlements.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm mb-6">
+            <div className="p-4 border-b">
+              <h2 className="font-bold text-gray-800">Settlements</h2>
+            </div>
+            <div className="divide-y">
+              {settlements.map((settlement) => {
+                const isFrom = settlement.fromUserId === currentUser.uid;
+                return (
+                  <div
+                    key={settlement.id}
+                    className="flex items-center justify-between p-4"
+                  >
+                    <div>
+                      <p className="text-sm text-gray-800">
+                        {isFrom ? "You paid" : "Payment from"}{" "}
+                        <span className="font-medium">
+                          {getMemberName(isFrom ? settlement.toUserId : settlement.fromUserId)}
+                        </span>
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(settlement.date).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`font-bold text-sm ${
+                          isFrom ? "text-red-600" : "text-green-600"
+                        }`}
+                      >
+                        {isFrom ? "-" : "+"}{formatCurrency(settlement.amount, "INR")}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteSettlement(settlement.id)}
+                        className="text-xs text-red-400 hover:text-red-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl shadow-sm">
           <div className="p-4 border-b">
             <h2 className="font-bold text-gray-800">Expenses</h2>
@@ -451,6 +539,13 @@ export default function GroupDetails() {
           members={members}
           onClose={() => setShowAddExpense(false)}
           onExpenseAdded={handleExpenseAdded}
+        />
+      )}
+
+      {showSettleModal && (
+        <SettleUpModal
+          onClose={() => setShowSettleModal(false)}
+          onSettlementCreated={handleSettleCreated}
         />
       )}
     </div>

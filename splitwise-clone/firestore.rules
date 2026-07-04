@@ -83,7 +83,9 @@ service cloud.firestore {
         && (request.resource.data.fromUserId == getUserId() || request.resource.data.toUserId == getUserId())
         && request.resource.data.amount > 0;
 
-      // No updates or deletes allowed
+      // Allow delete for participants or admin
+      allow delete: if isAuthenticated()
+        && (resource.data.fromUserId == getUserId() || resource.data.toUserId == getUserId() || isAdmin());
     }
 
     // Recurring expenses collection

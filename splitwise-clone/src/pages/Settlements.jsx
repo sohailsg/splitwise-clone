@@ -6,6 +6,7 @@ import {
   where,
   doc,
   getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
@@ -19,6 +20,7 @@ export default function Settlements() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showSettleModal, setShowSettleModal] = useState(false);
+  const [groups, setGroups] = useState({});
 
   const fetchSettlements = async () => {
     try {
@@ -40,6 +42,18 @@ export default function Settlements() {
 
       allSettlements.sort((a, b) => new Date(b.date) - new Date(a.date));
       setSettlements(allSettlements);
+
+      const groupIds = [...new Set(allSettlements.map((s) => s.groupId).filter(Boolean))];
+      if (groupIds.length > 0) {
+        const groupSnaps = await Promise.all(
+          groupIds.map((gid) => getDoc(doc(db, "groups", gid)).catch(() => null))
+        );
+        const groupMap = {};
+        groupSnaps.forEach((snap) => {
+          if (snap && snap.exists()) groupMap[snap.id] = snap.data().name;
+        });
+        setGroups(groupMap);
+      }
     } catch (error) {
       console.error("Error fetching settlements:", error);
       setError("Failed to load settlements");
@@ -86,6 +100,16 @@ export default function Settlements() {
     fetchSettlements();
   };
 
+  const handleDeleteSettlement = async (settlementId) => {
+    if (!confirm("Delete this settlement?")) return;
+    try {
+      await deleteDoc(doc(db, "settlements", settlementId));
+      setSettlements((prev) => prev.filter((s) => s.id !== settlementId));
+    } catch (err) {
+      console.error("Error deleting settlement:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -127,6 +151,9 @@ export default function Settlements() {
                       {isFrom ? "You paid" : "Payment from"}{" "}
                       {names[isFrom ? settlement.toUserId : settlement.fromUserId] || "Loading..."}
                     </p>
+                    <p className="text-xs text-gray-400">
+                      {groups[settlement.groupId] || ""}
+                    </p>
                     <p className="text-sm text-gray-500">
                       {new Date(settlement.date).toLocaleDateString("en-US", {
                         month: "short",
@@ -135,13 +162,21 @@ export default function Settlements() {
                       })}
                     </p>
                   </div>
-                  <span
-                    className={`font-bold ${
-                      isFrom ? "text-red-600" : "text-green-600"
-                    }`}
-                  >
-                    {isFrom ? "-" : "+"}{formatCurrency(settlement.amount, "INR")}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`font-bold ${
+                        isFrom ? "text-red-600" : "text-green-600"
+                      }`}
+                    >
+                      {isFrom ? "-" : "+"}{formatCurrency(settlement.amount, "INR")}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteSettlement(settlement.id)}
+                      className="text-xs text-red-400 hover:text-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
               );
             })}
