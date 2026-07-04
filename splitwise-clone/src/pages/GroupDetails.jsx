@@ -32,17 +32,11 @@ export default function GroupDetails() {
     let cancelled = false;
     const loadData = async () => {
       try {
-        const [groupSnap, expensesSnap, settlementsSnap] = await Promise.all([
+        const [groupSnap, expensesSnap] = await Promise.all([
           getDoc(doc(db, "groups", groupId)),
           getDocs(
             query(
               collection(db, "expenses"),
-              where("groupId", "==", groupId)
-            )
-          ),
-          getDocs(
-            query(
-              collection(db, "settlements"),
               where("groupId", "==", groupId)
             )
           ),
@@ -83,11 +77,17 @@ export default function GroupDetails() {
         expensesList.sort((a, b) => new Date(b.date) - new Date(a.date));
         setExpenses(expensesList);
 
-        const settlementsList = settlementsSnap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
-        setSettlements(settlementsList);
+        const settlementsSnap = await getDocs(
+          query(
+            collection(db, "settlements"),
+            where("groupId", "==", groupId)
+          )
+        ).catch(() => null);
+
+        if (cancelled) return;
+        if (settlementsSnap) {
+          setSettlements(settlementsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        }
       } catch (err) {
         console.error("Error loading data:", err);
         if (!cancelled) setError("Failed to load group");
@@ -113,27 +113,28 @@ export default function GroupDetails() {
   const handleExpenseAdded = async () => {
     setShowAddExpense(false);
     try {
-      const [expensesSnap, settlementsSnap] = await Promise.all([
-        getDocs(
-          query(
-            collection(db, "expenses"),
-            where("groupId", "==", groupId)
-          )
-        ),
-        getDocs(
-          query(
-            collection(db, "settlements"),
-            where("groupId", "==", groupId)
-          )
-        ),
-      ]);
+      const expensesSnap = await getDocs(
+        query(
+          collection(db, "expenses"),
+          where("groupId", "==", groupId)
+        )
+      );
       const expensesList = expensesSnap.docs.map((d) => ({
         id: d.id,
         ...d.data(),
       }));
       expensesList.sort((a, b) => new Date(b.date) - new Date(a.date));
       setExpenses(expensesList);
-      setSettlements(settlementsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+
+      const settlementsSnap = await getDocs(
+        query(
+          collection(db, "settlements"),
+          where("groupId", "==", groupId)
+        )
+      ).catch(() => null);
+      if (settlementsSnap) {
+        setSettlements(settlementsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      }
     } catch (err) {
       console.error("Error fetching data:", err);
     }
