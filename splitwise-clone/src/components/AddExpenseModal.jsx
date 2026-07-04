@@ -153,7 +153,7 @@ export default function AddExpenseModal({
         amount: parseFloat(splits[m.id]) || 0,
       }));
 
-      await addDoc(collection(db, "expenses"), {
+      const expenseData = {
         groupId,
         payerId,
         amount: convertedAmount,
@@ -162,16 +162,21 @@ export default function AddExpenseModal({
         description: description.trim(),
         splitType,
         splits: splitsArray,
-        shares: splitType === "shares" ? { ...shares } : undefined,
         date: new Date().toISOString(),
         createdBy: currentUser.uid,
-      });
+      };
+
+      if (splitType === "shares") {
+        expenseData.shares = { ...shares };
+      }
+
+      await addDoc(collection(db, "expenses"), expenseData);
       setLoading(false);
       onExpenseAdded();
     } catch (err) {
       setLoading(false);
-      setError("Failed to add expense");
-      console.error(err);
+      console.error("Expense creation failed:", err);
+      setError("Failed to add expense. Check console for details.");
     }
   };
 
