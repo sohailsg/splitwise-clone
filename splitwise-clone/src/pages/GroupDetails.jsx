@@ -267,7 +267,10 @@ export default function GroupDetails() {
           </div>
           <div className="divide-y">
             {Object.keys(groupBalances).map((from) =>
-              Object.entries(groupBalances[from]).map(([to, amount]) => (
+              Object.entries(groupBalances[from]).map(([to, amount]) => {
+                const isMe = from === currentUser.uid;
+                const isOwed = to === currentUser.uid;
+                return (
                 <div
                   key={`${from}-${to}`}
                   className="flex items-center justify-between p-4"
@@ -275,32 +278,39 @@ export default function GroupDetails() {
                   <div className="flex items-center space-x-2">
                     <span
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                        from === currentUser.uid
+                        isMe
                           ? "bg-red-500"
-                          : "bg-green-500"
+                          : isOwed
+                          ? "bg-green-500"
+                          : "bg-gray-400"
                       }`}
                     >
-                      {from === currentUser.uid ? "↑" : "↓"}
+                      {isMe ? "↑" : isOwed ? "↓" : "•"}
                     </span>
                     <span className="text-gray-800">
                       <span className="font-medium">
-                        {getMemberName(from)}
+                        {isMe ? "You" : getMemberName(from)}
                       </span>
-                      {from === currentUser.uid ? " pays " : " gets paid by "}
-                      <span className="font-medium">{getMemberName(to)}</span>
+                      {" pays "}
+                      <span className="font-medium">
+                        {isOwed ? "you" : getMemberName(to)}
+                      </span>
                     </span>
                   </div>
                   <span
                     className={`font-bold ${
-                      from === currentUser.uid
+                      isMe
                         ? "text-red-600"
-                        : "text-green-600"
+                        : isOwed
+                        ? "text-green-600"
+                        : "text-gray-600"
                     }`}
                   >
                     {formatCurrency(amount, "INR")}
                   </span>
                 </div>
-              ))
+                );
+              })
             )}
             {Object.keys(groupBalances).length === 0 && (
               <div className="p-4 text-center text-gray-400">
