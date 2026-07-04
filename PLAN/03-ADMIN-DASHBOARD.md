@@ -1,8 +1,11 @@
-# Phase 2: Admin Dashboard (Separate App) ✅ COMPLETE
+# Phase 2: Admin Dashboard (Separate App) ✅ COMPLETE — DEPLOYED
 
 ## Goal
 Build a separate admin panel to manage users, view expenses,
 review feedback, and configure the app.
+
+## Live URL
+https://splitwise-admin.vercel.app
 
 ## Project Structure
 ```

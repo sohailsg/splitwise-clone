@@ -5,10 +5,17 @@ A bill-splitting web app (React PWA) for 14 people. Users can create groups,
 add expenses, track who owes whom, and settle up.
 
 ## Current State
-- **Complete React PWA** with 37 source files, 12 pages, Firebase backend
-- **20 known bugs** (status: user says bugs are fixed)
+- **Complete React PWA** with 50+ source files, 12 pages, Firebase backend
+- **Admin Dashboard** separate React app with 7 pages
 - **Firebase project:** splitwise-copy-e6567
 - **Tech stack:** React 19 + Vite 8 + Tailwind CSS + Firebase
+- **Status:** DEPLOYED AND LIVE
+
+## Live URLs
+| App | URL |
+|-----|-----|
+| Main App | https://splitwise-clone-gold.vercel.app |
+| Admin Dashboard | https://splitwise-admin.vercel.app |
 
 ## Decisions Made
 1. **App type:** Native-feel app for 14 people (no app store, no Play Store)
@@ -30,10 +37,11 @@ add expenses, track who owes whom, and settle up.
 | 1 | PWA Deployment | 30 min | DONE |
 | 2 | Admin Dashboard | 3-5 days | DONE |
 | 3 | Feedback System | 1 day | DONE |
-| 4 | Iteration | Ongoing | NEXT |
+| 4 | Iteration | Ongoing | DONE |
 
 ## Key Files
 - Main app: `D:\splitwise copy\splitwise-clone\`
+- Admin dashboard: `D:\splitwise copy\splitwise-admin\`
 - Documentation: `D:\splitwise copy\info\`
 - Bug reports: `D:\splitwise copy\bugs\`
 - This plan: `D:\splitwise copy\PLAN\`

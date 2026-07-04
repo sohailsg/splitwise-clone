@@ -1,8 +1,11 @@
-# Phase 1: PWA Deployment ✅ COMPLETE
+# Phase 1: PWA Deployment ✅ COMPLETE — DEPLOYED
 
 ## Goal
 Deploy existing React app as a Progressive Web App that works on both
 Android and iOS. Users install it from the browser.
+
+## Live URL
+https://splitwise-clone-gold.vercel.app
 
 ## Steps
 

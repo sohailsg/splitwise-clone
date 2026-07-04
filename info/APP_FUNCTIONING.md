@@ -113,9 +113,25 @@ main.jsx
               │     ├── ScanReceiptPage
               │     │     ├── ReceiptScanner
               │     │     └── ItemizedSplitter
-              │     └── AiAssistant
-              │           └── AiChat
+              │     ├── AiAssistant
+              │     │     └── AiChat
+              │     └── FeedbackPage
+              │           └── FeedbackModal
               └── * (404 page)
+
+Admin Dashboard (separate app):
+splitwise-admin/
+  └── App.jsx (BrowserRouter)
+        └── AdminAuthProvider (Context)
+              ├── /login → Login
+              ├── /* (ProtectedRoute + Sidebar)
+              │     ├── / → Dashboard (stats overview)
+              │     ├── /users → Users (manage users)
+              │     ├── /expenses → Expenses (view/delete)
+              │     ├── /groups → Groups (list/dissolve)
+              │     ├── /feedback → Feedback (filter/resolve/reply)
+              │     └── /settings → Settings (info/announcements)
+              └── * → redirect to /
 ```
 
 ---
@@ -251,27 +267,34 @@ npm run preview    # Preview production build locally
 ```
 dist/
 ├── index.html
+├── manifest.json   # PWA manifest
+├── sw.js           # Service worker
 └── assets/
     ├── index-{hash}.js    # Bundled JavaScript
     └── index-{hash}.css   # Bundled CSS
 ```
 
-### Deployment Options
+### Deployment — Vercel (Production)
 
-The app is designed for free-tier hosting:
-- **Vercel** — Automatic deployment from Git
-- **Netlify** — Static site hosting
-- **Render** — Static site hosting
-- **Firebase Hosting** — Not currently configured
+Both apps are deployed on Vercel with automatic deploys from GitHub.
 
-### Deployment Steps (General)
+| App | Vercel Project | Root Directory | URL |
+|-----|---------------|----------------|-----|
+| Main App | splitwise-clone | `splitwise-clone` | https://splitwise-clone-gold.vercel.app |
+| Admin Dashboard | splitwise-admin | `splitwise-admin` | https://splitwise-admin.vercel.app |
 
-1. Push code to Git repository
-2. Connect hosting platform to repository
-3. Set build command: `npm run build`
-4. Set output directory: `dist`
-5. Add environment variables (Firebase config)
-6. Deploy
+### Deployment Steps
+
+1. Push code to GitHub repository (`sohails/splitwise-clone`)
+2. Vercel auto-deploys on every push
+3. Environment variables set in Vercel dashboard (Firebase config)
+4. Root directory set to respective app folder
+
+### PWA Installation (For Users)
+
+- **Android:** Open URL → tap "Add to Home Screen"
+- **iOS:** Open URL → tap Share → "Add to Home Screen"
+- App icon appears on home screen, works offline via service worker
 
 ---
 
@@ -309,9 +332,10 @@ The app is designed for free-tier hosting:
 
 | Collection | Read | Create | Update | Delete |
 |------------|------|--------|--------|--------|
-| `users/{uid}` | Any auth user | Self only | Self only | Not allowed |
+| `users/{uid}` | Any auth user | Self only | Self only + Admin | Not allowed |
 | `users/{uid}/friends/*` | Self only | Self only | Not allowed | Self only |
-| `groups/*` | Members | Auth + in memberUids | Members | Creator only |
-| `expenses/*` | Group members | Group members | Not allowed | Creator only |
-| `settlements/*` | Participants | Participants | Not allowed | Not allowed |
-| `recurringExpenses/*` | Group members | Group members | Group members | Group members |
+| `groups/*` | Members + Admin | Auth + in memberUids | Members + Admin | Creator + Admin |
+| `expenses/*` | Group members + Admin | Group members | Not allowed | Creator + Admin |
+| `settlements/*` | Participants + Admin | Participants | Not allowed | Not allowed |
+| `recurringExpenses/*` | Group members + Admin | Group members | Group members + Admin | Group members + Admin |
+| `feedback/*` | Self + Admin | Self (own userId) | Admin only | Admin only |

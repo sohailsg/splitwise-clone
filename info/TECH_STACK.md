@@ -129,11 +129,25 @@ Defined in `.env` (loaded via `import.meta.env`):
 
 | Package | Purpose |
 |---------|---------|
+| `@tailwindcss/vite` | Tailwind CSS Vite plugin |
 | `@vitejs/plugin-react` | Vite plugin for React |
 | `@types/react` | TypeScript types for React (IDE support) |
 | `@types/react-dom` | TypeScript types for React DOM |
 | `oxlint` | Rust-based linter |
 | `vite` | Build tool and dev server |
+
+---
+
+## Deployment
+
+| App | Platform | URL |
+|-----|----------|-----|
+| Main App | Vercel | https://splitwise-clone-gold.vercel.app |
+| Admin Dashboard | Vercel | https://splitwise-admin.vercel.app |
+
+- **CI/CD:** Auto-deploy on push to GitHub (`sohails/splitwise-clone`)
+- **PWA:** Service worker + manifest for offline support and home screen install
+- **Environment:** Firebase config stored as Vercel environment variables
 
 ---
 
