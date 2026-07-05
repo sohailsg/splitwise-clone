@@ -90,18 +90,12 @@ export default function GroupDetails() {
         setExpenses(expensesList);
 
         try {
-          const [sentSnap, receivedSnap] = await Promise.all([
-            getDocs(query(collection(db, "settlements"), where("fromUserId", "==", currentUser.uid))),
-            getDocs(query(collection(db, "settlements"), where("toUserId", "==", currentUser.uid))),
-          ]);
+          const settlementsSnap = await getDocs(
+            query(collection(db, "settlements"), where("groupId", "==", groupId))
+          );
           if (cancelled) return;
-          const allSettlements = [
-            ...sentSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-            ...receivedSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-          ];
-          const unique = allSettlements.filter((s) => s.groupId === groupId);
-          const deduped = Object.values(unique.reduce((acc, s) => { acc[s.id] = s; return acc; }, {}));
-          setSettlements(deduped);
+          const settlementsList = settlementsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setSettlements(settlementsList);
         } catch (e) {
           console.warn("Settlements fetch failed:", e);
         }
@@ -129,16 +123,10 @@ export default function GroupDetails() {
 
   const fetchGroupSettlements = async () => {
     try {
-      const [sentSnap, receivedSnap] = await Promise.all([
-        getDocs(query(collection(db, "settlements"), where("fromUserId", "==", currentUser.uid))),
-        getDocs(query(collection(db, "settlements"), where("toUserId", "==", currentUser.uid))),
-      ]);
-      const allSettlements = [
-        ...sentSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-        ...receivedSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-      ];
-      const filtered = allSettlements.filter((s) => s.groupId === groupId);
-      return Object.values(filtered.reduce((acc, s) => { acc[s.id] = s; return acc; }, {}));
+      const settlementsSnap = await getDocs(
+        query(collection(db, "settlements"), where("groupId", "==", groupId))
+      );
+      return settlementsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch (e) {
       console.warn("Settlements fetch failed:", e);
       return [];

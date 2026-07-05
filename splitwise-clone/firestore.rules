@@ -77,9 +77,9 @@ service cloud.firestore {
 
     // Settlements collection
     match /settlements/{settlementId} {
-      // Allow read if user is involved or admin
+      // Allow read if user is involved, in the group, or admin
       allow read: if isAuthenticated()
-        && (resource.data.fromUserId == getUserId() || resource.data.toUserId == getUserId() || isAdmin());
+        && (resource.data.fromUserId == getUserId() || resource.data.toUserId == getUserId() || isInGroup(resource.data.groupId) || isAdmin());
 
       // Allow create if user is one of the participants and amount is valid
       allow create: if isAuthenticated()
