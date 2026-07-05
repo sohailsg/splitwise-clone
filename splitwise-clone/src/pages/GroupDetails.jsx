@@ -36,6 +36,8 @@ export default function GroupDetails() {
   const [editGroupName, setEditGroupName] = useState("");
   const [friends, setFriends] = useState([]);
   const [memberSearch, setMemberSearch] = useState("");
+  const [editingMemberId, setEditingMemberId] = useState(null);
+  const [editingMemberName, setEditingMemberName] = useState("");
   const [expandedExpense, setExpandedExpense] = useState(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -229,6 +231,25 @@ export default function GroupDetails() {
     }
   };
 
+  const handleUpdateMemberName = async (memberId) => {
+    if (!editingMemberName.trim()) return;
+    try {
+      const memberNames = { ...(group.memberNames || {}), [memberId]: editingMemberName.trim() };
+      await updateDoc(doc(db, "groups", groupId), { memberNames });
+      setGroup((prev) => ({ ...prev, memberNames }));
+      setEditingMemberId(null);
+    } catch (err) {
+      console.error("Error updating member name:", err);
+      alert("Failed to update name. Please try again.");
+    }
+  };
+
+  const getMemberDisplayName = (uid) => {
+    if (group.memberNames && group.memberNames[uid]) return group.memberNames[uid];
+    const member = members.find((m) => m.id === uid);
+    return member ? member.name : "Unknown";
+  };
+
   const handleDeleteGroup = async () => {
     if (!confirm("Delete this group? This cannot be undone.")) return;
     if (!confirm("Are you sure? All group data will be lost.")) return;
@@ -261,8 +282,7 @@ export default function GroupDetails() {
   };
 
   const getMemberName = (uid) => {
-    const member = members.find((m) => m.id === uid);
-    return member ? member.name : "Unknown";
+    return getMemberDisplayName(uid);
   };
 
   const formatDate = (dateString) => {
@@ -747,7 +767,7 @@ export default function GroupDetails() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-800">Edit Group</h2>
-              <button onClick={() => { setShowEditGroup(false); setMemberSearch(""); }} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button onClick={() => { setShowEditGroup(false); setMemberSearch(""); setEditingMemberId(null); }} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
 
             <div className="space-y-5">
@@ -775,32 +795,70 @@ export default function GroupDetails() {
                   Members ({members.length})
                 </label>
                 <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-2">
-                  {members.map((member) => (
+                  {members.map((member) => {
+                    const displayName = getMemberDisplayName(member.id);
+                    return (
                     <div key={member.id} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
                       <div className="flex items-center space-x-2">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${
                           member.id === currentUser.uid ? "bg-green-500" : "bg-gray-400"
                         }`}>
-                          {member.name?.charAt(0).toUpperCase()}
+                          {displayName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-800">
-                            {member.name}
-                            {member.id === currentUser.uid && <span className="text-gray-400 ml-1">(you)</span>}
-                          </p>
+                          {editingMemberId === member.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={editingMemberName}
+                                onChange={(e) => setEditingMemberName(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleUpdateMemberName(member.id)}
+                                className="px-2 py-1 border rounded text-sm outline-none focus:ring-2 focus:ring-green-500"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleUpdateMemberName(member.id)}
+                                className="text-xs text-green-600 hover:text-green-800 font-medium"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingMemberId(null)}
+                                className="text-xs text-gray-400 hover:text-gray-600"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-sm font-medium text-gray-800">
+                              {displayName}
+                              {member.id === currentUser.uid && <span className="text-gray-400 ml-1">(you)</span>}
+                            </p>
+                          )}
                           <p className="text-xs text-gray-400">{member.email}</p>
                         </div>
                       </div>
-                      {member.id !== currentUser.uid && (
-                        <button
-                          onClick={() => handleRemoveMember(member.id)}
-                          className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
-                        >
-                          Remove
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {editingMemberId !== member.id && (
+                          <button
+                            onClick={() => { setEditingMemberId(member.id); setEditingMemberName(displayName); }}
+                            className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {member.id !== currentUser.uid && (
+                          <button
+                            onClick={() => handleRemoveMember(member.id)}
+                            className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
