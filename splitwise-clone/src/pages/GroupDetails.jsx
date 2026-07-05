@@ -35,6 +35,8 @@ export default function GroupDetails() {
   const [editGroupName, setEditGroupName] = useState("");
   const [friends, setFriends] = useState([]);
   const [expandedExpense, setExpandedExpense] = useState(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -511,15 +513,53 @@ export default function GroupDetails() {
 
         <div className="bg-white rounded-2xl shadow-sm">
           <div className="p-4 border-b">
-            <h2 className="font-bold text-gray-800">Expenses</h2>
-          </div>
-          {expenses.length === 0 ? (
-            <div className="p-6 text-center text-gray-400">
-              No expenses yet
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h2 className="font-bold text-gray-800">Expenses</h2>
+              <div className="flex gap-2 items-center text-sm">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="px-2 py-1 border rounded-lg text-gray-600 outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="From"
+                />
+                <span className="text-gray-400">to</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="px-2 py-1 border rounded-lg text-gray-600 outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="To"
+                />
+                {(dateFrom || dateTo) && (
+                  <button
+                    onClick={() => { setDateFrom(""); setDateTo(""); }}
+                    className="text-xs text-red-500 hover:text-red-700"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="divide-y">
-              {expenses.map((expense) => (
+          </div>
+          {(() => {
+            const filtered = expenses.filter((e) => {
+              if (!dateFrom && !dateTo) return true;
+              const d = new Date(e.date);
+              if (dateFrom && d < new Date(dateFrom)) return false;
+              if (dateTo && d > new Date(dateTo + "T23:59:59")) return false;
+              return true;
+            });
+            if (filtered.length === 0) {
+              return (
+                <div className="p-6 text-center text-gray-400">
+                  {expenses.length === 0 ? "No expenses yet" : "No expenses in this date range"}
+                </div>
+              );
+            }
+            return (
+              <div className="divide-y">
+                {filtered.map((expense) => (
                 <div key={expense.id} className="p-4">
                   <div
                     className="flex justify-between items-start cursor-pointer"
@@ -607,7 +647,8 @@ export default function GroupDetails() {
                 </div>
               ))}
             </div>
-          )}
+          );
+          })()}
         </div>
       </div>
 
