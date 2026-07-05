@@ -261,6 +261,23 @@ export default function GroupDetails() {
     }
   };
 
+  const handleLeaveGroup = async () => {
+    if (!confirm("Leave this group? You won't be able to see it anymore.")) return;
+    try {
+      const updates = { memberUids: arrayRemove(currentUser.uid) };
+      if (group.memberNames && group.memberNames[currentUser.uid]) {
+        const memberNames = { ...group.memberNames };
+        delete memberNames[currentUser.uid];
+        updates.memberNames = memberNames;
+      }
+      await updateDoc(doc(db, "groups", groupId), updates);
+      navigate("/groups");
+    } catch (err) {
+      console.error("Error leaving group:", err);
+      alert("Failed to leave group. Please try again.");
+    }
+  };
+
   const startEditDate = (id, currentDate) => {
     setEditingDateId(id);
     setEditingDateValue(new Date(currentDate).toISOString().split("T")[0]);
@@ -905,7 +922,13 @@ export default function GroupDetails() {
                 )}
               </div>
 
-              <div className="border-t pt-4">
+              <div className="border-t pt-4 space-y-2">
+                <button
+                  onClick={handleLeaveGroup}
+                  className="w-full bg-yellow-500 text-white py-2 rounded-lg font-medium hover:bg-yellow-600 transition-colors"
+                >
+                  Leave Group
+                </button>
                 <button
                   onClick={handleDeleteGroup}
                   className="w-full bg-red-500 text-white py-2 rounded-lg font-medium hover:bg-red-600 transition-colors"
