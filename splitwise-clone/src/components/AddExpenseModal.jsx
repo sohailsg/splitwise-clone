@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { collection, addDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
 import { CURRENCIES, convertCurrency, formatCurrency } from "../utils/currency";
 
@@ -22,6 +23,8 @@ export default function AddExpenseModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split("T")[0]);
+  const [evidenceFiles, setEvidenceFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   const members = useMemo(() => membersProp || [], [membersProp]);
 
@@ -171,11 +174,23 @@ export default function AddExpenseModal({
         expenseData.shares = { ...shares };
       }
 
+      if (evidenceFiles.length > 0) {
+        setUploading(true);
+        const uploadPromises = evidenceFiles.map(async (file) => {
+          const storageRef = ref(storage, `expenses/${groupId}/${Date.now()}_${file.name}`);
+          const snapshot = await uploadBytes(storageRef, file);
+          return getDownloadURL(snapshot.ref);
+        });
+        expenseData.evidenceUrls = await Promise.all(uploadPromises);
+        setUploading(false);
+      }
+
       await addDoc(collection(db, "expenses"), expenseData);
       setLoading(false);
       onExpenseAdded();
     } catch (err) {
       setLoading(false);
+      setUploading(false);
       console.error("Expense creation failed:", err);
       setError("Failed to add expense. Check console for details.");
     }
@@ -219,6 +234,58 @@ export default function AddExpenseModal({
               onChange={(e) => setExpenseDate(e.target.value)}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Evidence (bills, receipts)
+              <span className="text-gray-400 font-normal ml-1">— optional</span>
+            </label>
+            <label className="flex items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-400 transition-colors">
+              <div className="text-center">
+                <p className="text-sm text-gray-500">
+                  {uploading ? "Uploading..." : "Click to upload images"}
+                </p>
+                <p className="text-xs text-gray-400">JPG, PNG, PDF — max 5MB each</p>
+              </div>
+              <input
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files).filter((f) => f.size <= 5 * 1024 * 1024);
+                  setEvidenceFiles((prev) => [...prev, ...files].slice(0, 5));
+                }}
+              />
+            </label>
+            {evidenceFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {evidenceFiles.map((file, i) => (
+                  <div key={i} className="relative group">
+                    {file.type.startsWith("image/") ? (
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="Evidence"
+                        className="w-16 h-16 object-cover rounded border"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-100 rounded border flex items-center justify-center text-xs text-gray-500">
+                        PDF
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setEvidenceFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2">

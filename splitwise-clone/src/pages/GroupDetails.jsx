@@ -651,6 +651,11 @@ export default function GroupDetails() {
                     <div>
                       <p className="font-medium text-gray-800">
                         {expense.description}
+                        {expense.evidenceUrls && expense.evidenceUrls.length > 0 && (
+                          <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
+                            📎 {expense.evidenceUrls.length}
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm text-gray-500">
                         Paid by {getMemberName(expense.payerId)} •{" "}
@@ -710,6 +715,34 @@ export default function GroupDetails() {
                           );
                         })}
                       </div>
+                      {expense.evidenceUrls && expense.evidenceUrls.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-medium text-gray-600 mb-2">Evidence:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {expense.evidenceUrls.map((url, i) => (
+                              <a
+                                key={i}
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {url.includes(".pdf") ? (
+                                  <div className="w-20 h-20 bg-gray-100 rounded-lg border flex items-center justify-center text-xs text-gray-500 hover:bg-gray-200">
+                                    📄 PDF
+                                  </div>
+                                ) : (
+                                  <img
+                                    src={url}
+                                    alt="Evidence"
+                                    className="w-20 h-20 object-cover rounded-lg border hover:opacity-80 transition-opacity"
+                                  />
+                                )}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {expense.createdBy === currentUser.uid && (
                         <div className="mt-3 flex items-center gap-3">
                           {editingDateId === expense.id ? (
