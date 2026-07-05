@@ -37,6 +37,8 @@ export default function GroupDetails() {
   const [expandedExpense, setExpandedExpense] = useState(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [editingDateId, setEditingDateId] = useState(null);
+  const [editingDateValue, setEditingDateValue] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -242,6 +244,26 @@ export default function GroupDetails() {
       navigate("/groups");
     } catch (err) {
       console.error("Error deleting group:", err);
+    }
+  };
+
+  const startEditDate = (id, currentDate) => {
+    setEditingDateId(id);
+    setEditingDateValue(new Date(currentDate).toISOString().split("T")[0]);
+  };
+
+  const saveEditDate = async (collectionName, docId) => {
+    try {
+      const newDate = new Date(editingDateValue + "T12:00:00").toISOString();
+      await updateDoc(doc(db, collectionName, docId), { date: newDate });
+      if (collectionName === "expenses") {
+        setExpenses((prev) => prev.map((e) => e.id === docId ? { ...e, date: newDate } : e));
+      } else {
+        setSettlements((prev) => prev.map((s) => s.id === docId ? { ...s, date: newDate } : s));
+      }
+      setEditingDateId(null);
+    } catch (err) {
+      console.error("Error updating date:", err);
     }
   };
 
@@ -482,12 +504,39 @@ export default function GroupDetails() {
                           {getMemberName(isFrom ? settlement.toUserId : settlement.fromUserId)}
                         </span>
                       </p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(settlement.date).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </p>
+                      {editingDateId === settlement.id ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="date"
+                            value={editingDateValue}
+                            onChange={(e) => setEditingDateValue(e.target.value)}
+                            className="px-2 py-1 border rounded text-xs outline-none focus:ring-2 focus:ring-green-500"
+                          />
+                          <button
+                            onClick={() => saveEditDate("settlements", settlement.id)}
+                            className="text-xs text-green-600 hover:text-green-800 font-medium"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingDateId(null)}
+                            className="text-xs text-gray-400 hover:text-gray-600"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <p
+                          className="text-xs text-gray-400 cursor-pointer hover:text-blue-500"
+                          onClick={() => startEditDate(settlement.id, settlement.date)}
+                        >
+                          {new Date(settlement.date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                          <span className="ml-1 text-gray-300">✎</span>
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <span
@@ -632,15 +681,47 @@ export default function GroupDetails() {
                         })}
                       </div>
                       {expense.createdBy === currentUser.uid && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteExpense(expense.id);
-                          }}
-                          className="mt-3 text-xs text-red-500 hover:text-red-600"
-                        >
-                          Delete expense
-                        </button>
+                        <div className="mt-3 flex items-center gap-3">
+                          {editingDateId === expense.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="date"
+                                value={editingDateValue}
+                                onChange={(e) => setEditingDateValue(e.target.value)}
+                                className="px-2 py-1 border rounded text-sm outline-none focus:ring-2 focus:ring-green-500"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <button
+                                onClick={(e) => { e.stopPropagation(); saveEditDate("expenses", expense.id); }}
+                                className="text-xs text-green-600 hover:text-green-800 font-medium"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingDateId(null); }}
+                                className="text-xs text-gray-400 hover:text-gray-600"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); startEditDate(expense.id, expense.date); }}
+                              className="text-xs text-blue-500 hover:text-blue-700"
+                            >
+                              Edit date
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteExpense(expense.id);
+                            }}
+                            className="text-xs text-red-500 hover:text-red-600"
+                          >
+                            Delete expense
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
