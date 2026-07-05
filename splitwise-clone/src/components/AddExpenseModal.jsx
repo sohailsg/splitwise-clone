@@ -174,15 +174,32 @@ export default function AddExpenseModal({
       }
 
       if (evidenceFiles.length > 0) {
-        setUploading(true);
-        const base64Promises = evidenceFiles.map((file) =>
-          new Promise((resolve, reject) => {
+        const compressImage = (file) =>
+          new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
+            reader.onload = (event) => {
+              const img = new Image();
+              img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const maxSize = 800;
+                let w = img.width;
+                let h = img.height;
+                if (w > maxSize || h > maxSize) {
+                  if (w > h) { h = Math.round((h * maxSize) / w); w = maxSize; }
+                  else { w = Math.round((w * maxSize) / h); h = maxSize; }
+                }
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL("image/jpeg", 0.6));
+              };
+              img.src = event.target.result;
+            };
             reader.readAsDataURL(file);
-          })
-        );
+          });
+
+        setUploading(true);
+        const base64Promises = evidenceFiles.map((file) => compressImage(file));
         expenseData.evidenceImages = await Promise.all(base64Promises);
         setUploading(false);
       }
@@ -248,7 +265,7 @@ export default function AddExpenseModal({
                 <p className="text-sm text-gray-500">
                   {uploading ? "Uploading..." : "Click to upload images"}
                 </p>
-                <p className="text-xs text-gray-400">JPG, PNG, PDF — max 5MB each</p>
+                <p className="text-xs text-gray-400">JPG, PNG — max 3 images</p>
               </div>
               <input
                 type="file"
@@ -258,7 +275,7 @@ export default function AddExpenseModal({
                 disabled={uploading}
                 onChange={(e) => {
                   const files = Array.from(e.target.files).filter((f) => f.size <= 5 * 1024 * 1024);
-                  setEvidenceFiles((prev) => [...prev, ...files].slice(0, 5));
+                  setEvidenceFiles((prev) => [...prev, ...files].slice(0, 3));
                 }}
               />
             </label>
