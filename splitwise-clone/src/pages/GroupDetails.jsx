@@ -10,6 +10,7 @@ import {
   deleteDoc,
   updateDoc,
   arrayRemove,
+  arrayUnion,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
@@ -197,15 +198,17 @@ export default function GroupDetails() {
   const handleAddMember = async (friendId) => {
     try {
       await updateDoc(doc(db, "groups", groupId), {
-        memberUids: [...group.memberUids, friendId],
+        memberUids: arrayUnion(friendId),
       });
       const userSnap = await getDoc(doc(db, "users", friendId));
       if (userSnap.exists()) {
         setMembers((prev) => [...prev, { id: userSnap.id, ...userSnap.data() }]);
       }
       setGroup((prev) => ({ ...prev, memberUids: [...prev.memberUids, friendId] }));
+      setMemberSearch("");
     } catch (err) {
       console.error("Error adding member:", err);
+      alert("Failed to add member. Please try again.");
     }
   };
 
@@ -222,6 +225,7 @@ export default function GroupDetails() {
       }));
     } catch (err) {
       console.error("Error removing member:", err);
+      alert("Failed to remove member. Please try again.");
     }
   };
 
@@ -811,13 +815,13 @@ export default function GroupDetails() {
                       .filter((f) => {
                         if (!memberSearch.trim()) return true;
                         const q = memberSearch.toLowerCase();
-                        return (f.friendName || "").toLowerCase().includes(q) || (f.email || "").toLowerCase().includes(q);
+                        return (f.friendName || "").toLowerCase().includes(q) || (f.friendEmail || "").toLowerCase().includes(q);
                       })
                       .map((friend) => (
                         <div key={friend.id} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
                           <div>
                             <span className="text-sm text-gray-800">{friend.friendName}</span>
-                            <span className="text-xs text-gray-400 ml-1">{friend.email}</span>
+                            <span className="text-xs text-gray-400 ml-1">{friend.friendEmail}</span>
                           </div>
                           <button
                             onClick={() => handleAddMember(friend.id)}
