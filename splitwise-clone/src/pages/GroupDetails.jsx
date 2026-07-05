@@ -43,6 +43,8 @@ export default function GroupDetails() {
   const [dateTo, setDateTo] = useState("");
   const [editingDateId, setEditingDateId] = useState(null);
   const [editingDateValue, setEditingDateValue] = useState("");
+  const [addingEvidenceId, setAddingEvidenceId] = useState(null);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -295,6 +297,53 @@ export default function GroupDetails() {
       setEditingDateId(null);
     } catch (err) {
       console.error("Error updating date:", err);
+    }
+  };
+
+  const handleAddEvidence = async (expenseId, file) => {
+    setUploadingEvidence(true);
+    try {
+      const compressImage = (f) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              const maxSize = 800;
+              let w = img.width;
+              let h = img.height;
+              if (w > maxSize || h > maxSize) {
+                if (w > h) { h = Math.round((h * maxSize) / w); w = maxSize; }
+                else { w = Math.round((w * maxSize) / h); h = maxSize; }
+              }
+              canvas.width = w;
+              canvas.height = h;
+              canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL("image/jpeg", 0.6));
+            };
+            img.src = event.target.result;
+          };
+          reader.readAsDataURL(f);
+        });
+
+      const base64 = await compressImage(file);
+      const expense = expenses.find((e) => e.id === expenseId);
+      const existing = expense?.evidenceImages || [];
+      if (existing.length >= 5) {
+        alert("Maximum 5 images per expense.");
+        setUploadingEvidence(false);
+        return;
+      }
+      const updated = [...existing, base64];
+      await updateDoc(doc(db, "expenses", expenseId), { evidenceImages: updated });
+      setExpenses((prev) => prev.map((e) => e.id === expenseId ? { ...e, evidenceImages: updated } : e));
+      setAddingEvidenceId(null);
+    } catch (err) {
+      console.error("Error adding evidence:", err);
+      alert("Failed to add image.");
+    } finally {
+      setUploadingEvidence(false);
     }
   };
 
@@ -737,6 +786,43 @@ export default function GroupDetails() {
                           </div>
                         </div>
                       )}
+                      <div className="mt-3">
+                        {addingEvidenceId === expense.id ? (
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor={`evidence-${expense.id}`}
+                              className="inline-block bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer hover:bg-green-600 transition-colors"
+                            >
+                              {uploadingEvidence ? "Compressing..." : "Choose Image"}
+                            </label>
+                            <input
+                              id={`evidence-${expense.id}`}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingEvidence}
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) handleAddEvidence(expense.id, file);
+                                e.target.value = "";
+                              }}
+                            />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setAddingEvidenceId(null); }}
+                              className="text-xs text-gray-400 hover:text-gray-600"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setAddingEvidenceId(expense.id); }}
+                            className="text-xs text-blue-500 hover:text-blue-700"
+                          >
+                            + Add evidence
+                          </button>
+                        )}
+                      </div>
                       {expense.createdBy === currentUser.uid && (
                         <div className="mt-3 flex items-center gap-3">
                           {editingDateId === expense.id ? (

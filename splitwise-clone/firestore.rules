@@ -69,10 +69,10 @@ service cloud.firestore {
       // Allow delete for creator or admin
       allow delete: if isAuthenticated() && (resource.data.createdBy == getUserId() || isAdmin());
 
-      // Allow update date only for creator or admin
+      // Allow update date or evidenceImages for creator or group member
       allow update: if isAuthenticated()
-        && (resource.data.createdBy == getUserId() || isAdmin())
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['date']);
+        && (resource.data.createdBy == getUserId() || isInGroup(resource.data.groupId) || isAdmin())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['date', 'evidenceImages']);
     }
 
     // Settlements collection
