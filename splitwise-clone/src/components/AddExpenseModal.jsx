@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { collection, addDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../firebase";
+import { db } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
 import { CURRENCIES, convertCurrency, formatCurrency } from "../utils/currency";
 
@@ -176,12 +175,15 @@ export default function AddExpenseModal({
 
       if (evidenceFiles.length > 0) {
         setUploading(true);
-        const uploadPromises = evidenceFiles.map(async (file) => {
-          const storageRef = ref(storage, `expenses/${groupId}/${Date.now()}_${file.name}`);
-          const snapshot = await uploadBytes(storageRef, file);
-          return getDownloadURL(snapshot.ref);
-        });
-        expenseData.evidenceUrls = await Promise.all(uploadPromises);
+        const base64Promises = evidenceFiles.map((file) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          })
+        );
+        expenseData.evidenceImages = await Promise.all(base64Promises);
         setUploading(false);
       }
 
