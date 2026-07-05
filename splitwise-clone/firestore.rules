@@ -69,7 +69,10 @@ service cloud.firestore {
       // Allow delete for creator or admin
       allow delete: if isAuthenticated() && (resource.data.createdBy == getUserId() || isAdmin());
 
-      // No updates allowed
+      // Allow update date only for creator or admin
+      allow update: if isAuthenticated()
+        && (resource.data.createdBy == getUserId() || isAdmin())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['date']);
     }
 
     // Settlements collection
