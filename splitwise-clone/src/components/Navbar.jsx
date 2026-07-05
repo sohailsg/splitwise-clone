@@ -31,6 +31,7 @@ export default function Navbar() {
 
   const toolItems = [
     { to: "/history", label: "History", icon: "📋" },
+    { to: "/evidence", label: "Evidence", icon: "📎" },
     { to: "/minimizer", label: "Minimizer", icon: "⚡" },
     { to: "/scan", label: "Scan", icon: "📷" },
     { to: "/charts", label: "Charts", icon: "📈" },

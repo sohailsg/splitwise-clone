@@ -14,6 +14,7 @@ import ExpenseHistory from "./pages/ExpenseHistory";
 import SpendingCharts from "./pages/SpendingCharts";
 import ScanReceiptPage from "./pages/ScanReceiptPage";
 import FeedbackPage from "./pages/FeedbackPage";
+import Evidence from "./pages/Evidence";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/charts" element={<ProtectedRoute><SpendingCharts /></ProtectedRoute>} />
           <Route path="/scan" element={<ProtectedRoute><ScanReceiptPage /></ProtectedRoute>} />
           <Route path="/scan/:groupId" element={<ProtectedRoute><ScanReceiptPage /></ProtectedRoute>} />
+          <Route path="/evidence" element={<ProtectedRoute><Evidence /></ProtectedRoute>} />
           <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
           <Route path="*" element={
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
