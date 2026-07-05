@@ -275,6 +275,7 @@ export default function AddExpenseModal({
                 type="file"
                 multiple
                 accept="image/*"
+                capture="environment"
                 className="hidden"
                 disabled={uploading}
                 onChange={(e) => {

@@ -799,6 +799,7 @@ export default function GroupDetails() {
                               id={`evidence-${expense.id}`}
                               type="file"
                               accept="image/*"
+                              capture="environment"
                               className="hidden"
                               disabled={uploadingEvidence}
                               onChange={(e) => {
