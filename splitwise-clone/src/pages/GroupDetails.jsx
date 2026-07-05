@@ -17,6 +17,8 @@ import { useAuth } from "../hooks/useAuth";
 import Navbar from "../components/Navbar";
 import AddExpenseModal from "../components/AddExpenseModal";
 import SettleUpModal from "../components/SettleUpModal";
+import CreateEventModal from "../components/CreateEventModal";
+import SelectPaymentsModal from "../components/SelectPaymentsModal";
 import { computeRawBalances, netPairwiseBalances } from "../utils/balances";
 import { formatCurrency } from "../utils/currency";
 
@@ -45,6 +47,9 @@ export default function GroupDetails() {
   const [editingDateValue, setEditingDateValue] = useState("");
   const [addingEvidenceId, setAddingEvidenceId] = useState(null);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [selectPaymentsEvent, setSelectPaymentsEvent] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,6 +109,18 @@ export default function GroupDetails() {
           setSettlements(settlementsList);
         } catch (e) {
           console.warn("Settlements fetch failed:", e);
+        }
+
+        try {
+          const eventsSnap = await getDocs(
+            collection(db, "groups", groupId, "events")
+          );
+          if (cancelled) return;
+          const eventsList = eventsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          eventsList.sort((a, b) => new Date(a.date) - new Date(b.date));
+          setEvents(eventsList);
+        } catch (e) {
+          console.warn("Events fetch failed:", e);
         }
       } catch (err) {
         console.error("Error loading data:", err);
@@ -173,6 +190,60 @@ export default function GroupDetails() {
   const handleSettleCreated = async () => {
     setShowSettleModal(false);
     setSettlements(await fetchGroupSettlements());
+  };
+
+  const fetchEvents = async () => {
+    try {
+      const eventsSnap = await getDocs(
+        collection(db, "groups", groupId, "events")
+      );
+      const eventsList = eventsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      eventsList.sort((a, b) => new Date(a.date) - new Date(b.date));
+      setEvents(eventsList);
+    } catch (e) {
+      console.warn("Events fetch failed:", e);
+    }
+  };
+
+  const handleEventCreated = async () => {
+    setShowCreateEvent(false);
+    await fetchEvents();
+  };
+
+  const handlePaymentsAssigned = async () => {
+    setSelectPaymentsEvent(null);
+    try {
+      const expensesSnap = await getDocs(
+        query(collection(db, "expenses"), where("groupId", "==", groupId))
+      );
+      const expensesList = expensesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      expensesList.sort((a, b) => new Date(b.date) - new Date(a.date));
+      setExpenses(expensesList);
+    } catch (err) {
+      console.error("Error refreshing expenses:", err);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (!confirm("Delete this event? Expenses will become unassigned.")) return;
+    try {
+      await deleteDoc(doc(db, "groups", groupId, "events", eventId));
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+      setExpenses((prev) => prev.map((e) => e.eventId === eventId ? { ...e, eventId: null } : e));
+    } catch (err) {
+      console.error("Error deleting event:", err);
+    }
+  };
+
+  const getEventTotals = (eventExpenses) => {
+    const total = eventExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const perPerson = {};
+    eventExpenses.forEach((e) => {
+      (e.splits || []).forEach((s) => {
+        perPerson[s.uid] = (perPerson[s.uid] || 0) + (parseFloat(s.amount) || 0);
+      });
+    });
+    return { total, perPerson };
   };
 
   const openEditGroup = async () => {
@@ -639,6 +710,71 @@ export default function GroupDetails() {
           </div>
         )}
 
+        <div className="bg-white rounded-2xl shadow-sm mb-6">
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-gray-800">Events</h2>
+              <button
+                onClick={() => setShowCreateEvent(true)}
+                className="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-purple-600 transition-colors"
+              >
+                + Event
+              </button>
+            </div>
+          </div>
+          {events.length === 0 ? (
+            <div className="p-6 text-center text-gray-400">
+              No events yet. Create one to group related payments.
+            </div>
+          ) : (
+            <div className="divide-y">
+              {events.map((event) => {
+                const eventExpenses = expenses.filter((e) => e.eventId === event.id);
+                const totals = getEventTotals(eventExpenses);
+                return (
+                  <div key={event.id} className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-bold text-gray-800">{event.name}</h3>
+                        <p className="text-xs text-gray-400">
+                          {formatDate(event.date)}
+                          {event.description ? ` — ${event.description}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800">
+                          {formatCurrency(totals.total, "INR")}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteEvent(event.id)}
+                          className="text-xs text-red-400 hover:text-red-600"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    {Object.keys(totals.perPerson).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {Object.entries(totals.perPerson).map(([uid, amount]) => (
+                          <span key={uid} className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                            {getMemberName(uid)}: {formatCurrency(amount, "INR")}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setSelectPaymentsEvent(event)}
+                      className="text-xs bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg font-medium hover:bg-purple-100 transition-colors"
+                    >
+                      Select Payments ({eventExpenses.length})
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <div className="bg-white rounded-2xl shadow-sm">
           <div className="p-4 border-b">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -883,6 +1019,7 @@ export default function GroupDetails() {
           members={members}
           onClose={() => setShowAddExpense(false)}
           onExpenseAdded={handleExpenseAdded}
+          events={events}
         />
       )}
 
@@ -890,6 +1027,23 @@ export default function GroupDetails() {
         <SettleUpModal
           onClose={() => setShowSettleModal(false)}
           onSettlementCreated={handleSettleCreated}
+        />
+      )}
+
+      {showCreateEvent && (
+        <CreateEventModal
+          groupId={groupId}
+          onClose={() => setShowCreateEvent(false)}
+          onCreated={handleEventCreated}
+        />
+      )}
+
+      {selectPaymentsEvent && (
+        <SelectPaymentsModal
+          event={selectPaymentsEvent}
+          expenses={expenses}
+          onClose={() => setSelectPaymentsEvent(null)}
+          onSaved={handlePaymentsAssigned}
         />
       )}
 

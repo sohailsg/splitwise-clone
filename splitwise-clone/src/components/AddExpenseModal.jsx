@@ -10,6 +10,7 @@ export default function AddExpenseModal({
   onClose,
   onExpenseAdded,
   baseCurrency = "INR",
+  events = [],
 }) {
   const { currentUser } = useAuth();
   const [description, setDescription] = useState("");
@@ -24,6 +25,7 @@ export default function AddExpenseModal({
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split("T")[0]);
   const [evidenceFiles, setEvidenceFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState("");
 
   const members = useMemo(() => membersProp || [], [membersProp]);
 
@@ -173,6 +175,10 @@ export default function AddExpenseModal({
         expenseData.shares = { ...shares };
       }
 
+      if (selectedEventId) {
+        expenseData.eventId = selectedEventId;
+      }
+
       if (evidenceFiles.length > 0) {
         const compressImage = (file) =>
           new Promise((resolve) => {
@@ -244,6 +250,24 @@ export default function AddExpenseModal({
               required
             />
           </div>
+
+          {events.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Event (optional)</label>
+              <select
+                value={selectedEventId}
+                onChange={(e) => setSelectedEventId(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+              >
+                <option value="">None (Group level)</option>
+                {events.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
