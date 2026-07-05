@@ -34,6 +34,7 @@ export default function GroupDetails() {
   const [showEditGroup, setShowEditGroup] = useState(false);
   const [editGroupName, setEditGroupName] = useState("");
   const [friends, setFriends] = useState([]);
+  const [memberSearch, setMemberSearch] = useState("");
   const [expandedExpense, setExpandedExpense] = useState(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -742,7 +743,7 @@ export default function GroupDetails() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-800">Edit Group</h2>
-              <button onClick={() => setShowEditGroup(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button onClick={() => { setShowEditGroup(false); setMemberSearch(""); }} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
 
             <div className="space-y-5">
@@ -786,7 +787,7 @@ export default function GroupDetails() {
                           <p className="text-xs text-gray-400">{member.email}</p>
                         </div>
                       </div>
-                      {member.id !== currentUser.uid && group.createdBy === currentUser.uid && (
+                      {member.id !== currentUser.uid && (
                         <button
                           onClick={() => handleRemoveMember(member.id)}
                           className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
@@ -799,33 +800,48 @@ export default function GroupDetails() {
                 </div>
               </div>
 
-              {group.createdBy === currentUser.uid && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Add Member</label>
-                  {friends.length === 0 ? (
-                    <p className="text-sm text-gray-400">No friends to add. Add friends first.</p>
-                  ) : (
-                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-2">
-                      {friends
-                        .filter((f) => !group.memberUids.includes(f.id))
-                        .map((friend) => (
-                          <div key={friend.id} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Add Member</label>
+                {friends.length === 0 ? (
+                  <p className="text-sm text-gray-400">No friends to add. Add friends first.</p>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-2">
+                    {friends
+                      .filter((f) => !group.memberUids.includes(f.id))
+                      .filter((f) => {
+                        if (!memberSearch.trim()) return true;
+                        const q = memberSearch.toLowerCase();
+                        return (f.friendName || "").toLowerCase().includes(q) || (f.email || "").toLowerCase().includes(q);
+                      })
+                      .map((friend) => (
+                        <div key={friend.id} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
+                          <div>
                             <span className="text-sm text-gray-800">{friend.friendName}</span>
-                            <button
-                              onClick={() => handleAddMember(friend.id)}
-                              className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50"
-                            >
-                              + Add
-                            </button>
+                            <span className="text-xs text-gray-400 ml-1">{friend.email}</span>
                           </div>
-                        ))}
-                      {friends.filter((f) => !group.memberUids.includes(f.id)).length === 0 && (
-                        <p className="text-sm text-gray-400">All friends are already in this group.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+                          <button
+                            onClick={() => handleAddMember(friend.id)}
+                            className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50"
+                          >
+                            + Add
+                          </button>
+                        </div>
+                      ))}
+                    {friends.filter((f) => !group.memberUids.includes(f.id)).length === 0 && (
+                      <p className="text-sm text-gray-400">All friends are already in this group.</p>
+                    )}
+                  </div>
+                )}
+                {friends.filter((f) => !group.memberUids.includes(f.id)).length > 3 && (
+                  <input
+                    type="text"
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder="Search by name or email..."
+                    className="w-full mt-2 px-3 py-1.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                )}
+              </div>
 
               <div className="border-t pt-4">
                 <button
