@@ -21,6 +21,7 @@ export default function SettleUpModal({ onClose, onSettlementCreated }) {
   const [loading, setLoading] = useState(false);
   const [fetchingGroups, setFetchingGroups] = useState(true);
   const [error, setError] = useState("");
+  const [settleDate, setSettleDate] = useState(new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -105,7 +106,7 @@ export default function SettleUpModal({ onClose, onSettlementCreated }) {
         toUserId: toUser,
         groupId: selectedGroup,
         amount: parseFloat(amount),
-        date: new Date().toISOString(),
+        date: new Date(settleDate + "T12:00:00").toISOString(),
       };
 
       await addDoc(collection(db, "settlements"), settleData);
@@ -186,6 +187,18 @@ export default function SettleUpModal({ onClose, onSettlementCreated }) {
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
               placeholder="0.00"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date
+            </label>
+            <input
+              type="date"
+              value={settleDate}
+              onChange={(e) => setSettleDate(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
             />
           </div>
 

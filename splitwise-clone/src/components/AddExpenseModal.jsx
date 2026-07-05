@@ -21,6 +21,7 @@ export default function AddExpenseModal({
   const [shares, setShares] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split("T")[0]);
 
   const members = useMemo(() => membersProp || [], [membersProp]);
 
@@ -162,7 +163,7 @@ export default function AddExpenseModal({
         description: description.trim(),
         splitType,
         splits: splitsArray,
-        date: new Date().toISOString(),
+        date: new Date(expenseDate + "T12:00:00").toISOString(),
         createdBy: currentUser.uid,
       };
 
@@ -207,6 +208,16 @@ export default function AddExpenseModal({
               placeholder="e.g., Dinner, Groceries, Rent"
               maxLength="200"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input
+              type="date"
+              value={expenseDate}
+              onChange={(e) => setExpenseDate(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
             />
           </div>
 
