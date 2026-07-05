@@ -260,25 +260,31 @@ export default function AddExpenseModal({
               Evidence (bills, receipts)
               <span className="text-gray-400 font-normal ml-1">— optional</span>
             </label>
-            <label className="flex items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-400 transition-colors">
-              <div className="text-center">
-                <p className="text-sm text-gray-500">
-                  {uploading ? "Uploading..." : "Click to upload images"}
-                </p>
-                <p className="text-xs text-gray-400">JPG, PNG — max 3 images</p>
-              </div>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-500 mb-2">
+                {uploading ? "Compressing..." : "Attach receipt photos"}
+              </p>
+              <label
+                htmlFor="evidence-input"
+                className="inline-block bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium cursor-pointer hover:bg-green-600 transition-colors"
+              >
+                Choose Files
+              </label>
               <input
+                id="evidence-input"
                 type="file"
                 multiple
-                accept="image/*,.pdf"
+                accept="image/*"
                 className="hidden"
                 disabled={uploading}
                 onChange={(e) => {
                   const files = Array.from(e.target.files).filter((f) => f.size <= 5 * 1024 * 1024);
                   setEvidenceFiles((prev) => [...prev, ...files].slice(0, 3));
+                  e.target.value = "";
                 }}
               />
-            </label>
+              <p className="text-xs text-gray-400 mt-1">JPG, PNG — max 3 images</p>
+            </div>
             {evidenceFiles.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {evidenceFiles.map((file, i) => (
